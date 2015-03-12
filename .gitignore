@@ -1,0 +1,6 @@
+bin/*
+obj/*
+*.exe
+*.pyc
+*.sublime-workspace
+*.ninja
