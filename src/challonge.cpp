@@ -45,7 +45,8 @@ json::object get_tournament(const json::object& conf, const std::string& url) {
     auto&& domain = api_domain(url);
     std::vector<std::pair<const char*, const char*>> params = {
         { "api_key", conf.at("challonge_api_key").as<const char*>() },
-        { "include_matches", "1" }
+        { "include_matches", "1" },
+        { "include_participants", "1" }
     };
     auto api_url = "https://api.challonge.com/v1/tournaments/" + domain + ".json";
     auto r = get_response(api_url, params);
@@ -73,6 +74,7 @@ static void verify_tournament(const json::object& tournament) {
         notes.emplace_back("tournament is not complete");
     }
     if(not notes.empty()) {
+        notes.emplace_back("url is: " + tournament.at("full_challonge_url").as<std::string>(""));
         throw noted_error("invalid tournament", notes, true);
     }
 }
@@ -156,6 +158,69 @@ static std::vector<match> get_matches(const json::array& matches, users_t& users
         }
     }
 
+    return result;
+}
+
+static game get_game(json::object& tournament) {
+    auto&& list = games();
+    auto game_id = tournament["game_id"].as<int>(0);
+    auto it = std::find_if(std::begin(list), std::end(list), [&game_id](const game& g) {
+        return g.id == game_id;
+    });
+
+    if(it == std::end(list)) {
+        throw fatal_error("game not supported: game id " + std::to_string(game_id));
+    }
+    return *it;
+}
+
+void update(const std::string& url, const std::string& other_url) {
+    auto conf = get_config();
+    auto tournament = get_tournament(conf, url);
+    auto other_tourney = get_tournament(conf, other_url);
+    verify_tournament(tournament);
+    verify_tournament(other_tourney);
+    auto smash_game = get_game(tournament);
+    auto other_game = get_game(other_tourney);
+    if(other_game.id != smash_game.id) {
+        throw fatal_error("tournaments have mismatching game ids");
+    }
+    auto users = get_users(smash_game);
+    auto participants = tournament["participants"].as<json::array>({});
+    auto other_participants = other_tourney["participants"].as<json::array>({});
+    auto mapping = get_mapping(participants);
+    auto other_mapping = get_mapping(other_participants);
+    auto matches = get_matches(tournament["matches"].as<json::array>({}), users, mapping);
+    auto other_matches = get_matches(other_tourney["matches"].as<json::array>({}), users, other_mapping);
+    matches.insert(std::end(matches), std::begin(other_matches), std::end(other_matches));
+
+    // check for 'tournaments_won'
+    for(auto&& p : other_mapping) {
+        auto& player = retrieve_user(p.second.first, users);
+        if(p.second.second == 1) {
+            ++player.tournaments_won;
+            break;
+        }
+    }
+
+    for(auto&& u : users) {
+        u.second.update(matches);
+    }
+
+    update_users(users, smash_game);
+}
+
+void update(const std::string& url) {
+
+    auto conf = get_config();
+    auto tournament = get_tournament(conf, url);
+    verify_tournament(tournament);
+    auto smash_game = get_game(tournament);
+    auto users = get_users(smash_game);
+    auto participants = tournament["participants"].as<json::array>({});
+    auto mapping = get_mapping(participants);
+    auto&& matches = get_matches(tournament["matches"].as<json::array>({}), users, mapping);
+
     // check for 'tournaments_won' statistic
     for(auto&& p : mapping) {
         auto& player = retrieve_user(p.second.first, users);
@@ -164,31 +229,10 @@ static std::vector<match> get_matches(const json::array& matches, users_t& users
         }
     }
 
-    return result;
-}
-
-void update(const std::string& url) {
-    auto conf = get_config();
-    auto tournament = get_tournament(conf, url);
-    verify_tournament(tournament);
-    auto games_list = games();
-    auto game_id = tournament["game_id"].as<int>(0);
-    auto it = std::find_if(std::begin(games_list), std::end(games_list), [&game_id](const game& g) {
-        return g.id == game_id;
-    });
-
-    if(it == std::end(games_list)) {
-        throw fatal_error("game not supported: game id " + std::to_string(game_id));
-    }
-    auto users = get_users(*it);
-    auto participants = get_participants(conf, url);
-    auto mapping = get_mapping(participants);
-    auto&& matches = get_matches(tournament["matches"].as<json::array>({}), users, mapping);
-
     for(auto&& u : users) {
         u.second.update(matches);
     }
 
-    update_users(users, *it);
+    update_users(users, smash_game);
 }
 } // hypest

@@ -37,6 +37,7 @@ json::array get_participants(const json::object& conf, const std::string& url);
 
 // update the database with a challonge URL
 void update(const std::string& url);
+void update(const std::string& url, const std::string& other_url);
 } // hypest
 
 #endif // HYPEST_CHALLONGE_HPP
