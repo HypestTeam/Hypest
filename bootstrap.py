@@ -26,7 +26,7 @@ def warning(string):
 if 'g++' not in args.cxx:
     warning('compiler not explicitly supported: {}'.format(args.cxx))
 
-cxxflags = ['-Wall', '-Wextra', '-pedantic', '-std=c++11', '-Wno-missing-field-initializers']
+cxxflags = ['-Wall', '-Wextra', '-pedantic', '-std=c++1y', '-Wno-missing-field-initializers']
 
 if sys.platform == 'win32':
     project.libraries.append('curldll')

@@ -32,12 +32,11 @@ std::string api_domain(const std::string& url);
 // get the tournament JSON
 json::object get_tournament(const json::object& conf, const std::string& url);
 
-// get the  participant JSON
-json::array get_participants(const json::object& conf, const std::string& url);
+// update the rating period with the following tournament
+void rank(const std::string& url);
 
-// update the database with a challonge URL
-void update(const std::string& url);
-void update(const std::string& url, const std::string& other_url);
+// finalise a rating period and update everyone's ranking
+void commit();
 } // hypest
 
 #endif // HYPEST_CHALLONGE_HPP

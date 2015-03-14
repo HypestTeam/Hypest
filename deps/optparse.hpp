@@ -478,7 +478,7 @@ private:
     }
 
     std::unique_ptr<value_base> clone() const override {
-        auto&& ptr = make_unique<typed_value<T>>(action_);
+        auto&& ptr = ::gears::make_unique<typed_value<T>>(action_);
         ptr->reference = reference;
         ptr->active = active;
         ptr->nargs = nargs;
@@ -532,7 +532,7 @@ public:
 
 template<typename Container, typename Action = store<typename Container::value_type>>
 inline std::unique_ptr<value_base> compose(std::string metavar = "", Action action = Action{}) {
-    auto&& ptr = make_unique<typed_value<Container>>(append<Container>{action});
+    auto&& ptr = ::gears::make_unique<typed_value<Container>>(append<Container>{action});
     ptr->metavar = std::move(metavar);
     return std::unique_ptr<value_base>{std::move(ptr)};
 }
@@ -540,7 +540,7 @@ inline std::unique_ptr<value_base> compose(std::string metavar = "", Action acti
 
 template<typename T, typename Action = store<T>>
 inline std::unique_ptr<value_base> bind_to(T& t, std::string metavar = "", Action action = Action{}) {
-    auto&& ptr = make_unique<typed_value<T>>(t);
+    auto&& ptr = ::gears::make_unique<typed_value<T>>(t);
     ptr->action(std::move(action));
     ptr->metavar = std::move(metavar);
     return std::unique_ptr<value_base>{std::move(ptr)};
@@ -549,7 +549,7 @@ inline std::unique_ptr<value_base> bind_to(T& t, std::string metavar = "", Actio
 
 template<typename T>
 inline std::unique_ptr<value_base> constant(const T& t) {
-    auto&& ptr = make_unique<typed_value<T>>(store_const<T>{t});
+    auto&& ptr = ::gears::make_unique<typed_value<T>>(store_const<T>{t});
     ptr->nargs = 0;
     return std::unique_ptr<value_base>{std::move(ptr)};
 }
@@ -557,7 +557,7 @@ inline std::unique_ptr<value_base> constant(const T& t) {
 
 template<typename T, typename Action = store<T>>
 inline std::unique_ptr<value_base> value(std::string metavar = "", Action action = Action{}) {
-    auto&& ptr = make_unique<typed_value<T>>(action);
+    auto&& ptr = ::gears::make_unique<typed_value<T>>(action);
     ptr->metavar = std::move(metavar);
     return std::unique_ptr<value_base>{std::move(ptr)};
 }
@@ -565,7 +565,7 @@ inline std::unique_ptr<value_base> value(std::string metavar = "", Action action
 
 template<typename T, typename Action>
 inline std::unique_ptr<value_base> custom(Action action, std::string metavar = "") {
-    auto&& ptr = make_unique<typed_value<T>>(action);
+    auto&& ptr = ::gears::make_unique<typed_value<T>>(action);
     ptr->metavar = std::move(metavar);
     return std::unique_ptr<value_base>{std::move(ptr)};
 }
@@ -575,7 +575,7 @@ template<typename Container, typename Action = store<typename Container::value_t
 inline std::unique_ptr<value_base> list(size_t arguments, std::string metavar = "", Action action = Action{}) {
     static_assert(std::is_convertible<decltype(action("", "")), typename Container::value_type>::value,
                   "The action must return a type convertible to the container's value type");
-    auto&& ptr = make_unique<typed_value<Container>>(store_list<Container, Action>{action});
+    auto&& ptr = ::gears::make_unique<typed_value<Container>>(store_list<Container, Action>{action});
     ptr->nargs = arguments;
     ptr->metavar = std::move(metavar);
     return std::unique_ptr<value_base>{std::move(ptr)};
@@ -1230,7 +1230,7 @@ struct option_parser {
 private:
     std::vector<subcommand> subcommands;
     option_set options;
-    std::unique_ptr<formatter> format = make_unique<formatter>();
+    std::unique_ptr<formatter> format = ::gears::make_unique<formatter>();
     option_set* active_options = &options;
     std::ptrdiff_t index = -1;
 
@@ -1423,7 +1423,7 @@ public:
     template<typename Formatter>
     void help_formatter(const Formatter& form) {
         static_assert(std::is_base_of<formatter, Formatter>::value, "Must derive from formatter");
-        format = make_unique<Formatter>(form);
+        format = ::gears::make_unique<Formatter>(form);
     }
 
 

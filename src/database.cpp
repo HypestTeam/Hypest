@@ -10,65 +10,43 @@ namespace opt = gears::optparse;
 namespace hypest {
 opt::subcommand database() {
     opt::option_set args = {
-        { "update", 'u', "updates the database with the given bracket", opt::value<std::string>("url") },
-        { "with", 'w', "specifies the top cut bracket", opt::value<std::string>("url") },
-        { "force", 'f', "force updating despite being the url(s) being processed already" }
+        { "rank", 'r', "updates the rating period with the given bracket", opt::value<std::string>("url") },
+        { "force", 'f', "force updating despite being the url(s) being processed already" },
+        { "commit", 'c', "finalises a rating period and updates player's rankings" }
     };
 
     opt::subcommand result = { "database", "handles the hypest database", args };
     result.description = "Updates, deletes, or otherwise fiddles with the Hypest database that keeps track of matches\n"
-                         "\nIn order to update the database with a tournament with no top-cut then --update <url> is used.\n"
-                         "However, if a top-cut is present then --update <url> --with <top-cut-url> should be used instead.\n"
-                         "This makes sure that the rating period is fair for all players";
+                         "\nIn order to add things to the rating period you must use --rank <url> for every bracket."
+                         "Once the rating period is seemingly complete, use --commit to finalise the rating period";
     return result;
 }
 
 void database(const opt::arguments& args) {
     auto&& opts = args.options;
-    cache_t cache;
-    cache_entry entry;
+    rank_cache cache = get_cache();
     bool forced = opts.is_active("force");
-    bool updated = opts.is_active("update");
-    bool with   = opts.is_active("with");
-    if(not forced) {
-        cache = get_cache();
-    }
-
-    if(with && not updated) {
-        throw opt::error("hypest", "using '--with' without '--update' is prohibited", "");
-    }
-
-    if(updated) {
-        auto notes = {
-            "use --force to reprocess"
-        };
-
-        entry.url = opts.get<std::string>("update");
-        if(std::binary_search(cache.begin(), cache.end(), entry)) {
-            throw noted_error(entry.url + " is already in the cache", notes);
-        }
-
-        if(with) {
-            entry.url = opts.get<std::string>("with");
-            if(std::binary_search(cache.begin(), cache.end(), entry)) {
-                throw noted_error(entry.url + " is already in the cache", notes);
+    if(opts.is_active("rank")) {
+        auto&& url = opts.get<std::string>("rank");
+        if(not forced) {
+            if(cache.in(url)) {
+                auto notes = {
+                    "use --force to reprocess"
+                };
+                throw noted_error("bracket has already been processed", notes);
             }
-            update(opts.get<std::string>("update"), opts.get<std::string>("with"));
+            cache.add(url);
         }
-        else {
-            update(opts.get<std::string>("update"));
-        }
+        rank(url);
+    }
+
+    if(opts.is_active("commit")) {
+        commit();
     }
 
     if(not forced) {
-        int id = static_cast<int>(cache.size() + 1);
-        int next = static_cast<int>(cache.size() + 2);
-        if(updated and not with) {
-            cache.push_back({ opts.get<std::string>("update"), id, 0 });
-        }
-        else if(updated and with) {
-            cache.push_back({ opts.get<std::string>("update"), id, next });
-            cache.push_back({ opts.get<std::string>("with"), next, id });
+        if(opts.is_active("commit")) {
+            ++cache.current_rating_period;
         }
         update_cache(cache);
     }

@@ -5,6 +5,7 @@
 #include <error.hpp>
 #include <challonge.hpp>
 #include <regex>
+#include <iomanip>
 #include <fstream>
 #include <algorithm>
 #include <cassert>
@@ -53,19 +54,6 @@ json::object get_tournament(const json::object& conf, const std::string& url) {
     json::value js;
     json::parse(r.text, js);
     return js["tournament"].as<json::object>();
-}
-
-json::array get_participants(const json::object& conf, const std::string& url) {
-    auto&& domain = api_domain(url);
-    std::initializer_list<std::pair<const char*, const char*>> params = {
-        { "api_key", conf.at("challonge_api_key").as<const char*>() }
-    };
-
-    auto api_url = "https://api.challonge.com/v1/tournaments/" + domain + "/participants.json";
-    auto r = get_response(api_url, params);
-    json::value js;
-    json::parse(r.text, js);
-    return js.as<json::array>({});
 }
 
 static void verify_tournament(const json::object& tournament) {
@@ -118,8 +106,23 @@ static user& retrieve_user(const std::string& username, users_t& users) {
     return it->second;
 }
 
-static std::vector<match> get_matches(const json::array& matches, users_t& users, const mapping_t& mapping) {
-    std::vector<match> result;
+struct game_match {
+    std::string player1;
+    std::string player2;
+    std::string game;
+    int result;
+};
+
+std::istream& operator>>(std::istream& in, game_match& r) {
+    return in >> std::quoted(r.player1) >> std::quoted(r.player2) >> r.result >> std::quoted(r.game);
+}
+
+std::ostream& operator<<(std::ostream& out, const game_match& r) {
+    return out << std::quoted(r.player1) << std::quoted(r.player2) << r.result << std::quoted(r.game);
+}
+
+static void update_rating_period(const json::array& matches, users_t& users, const mapping_t& mapping, const game& g) {
+    std::ofstream rating("rating_period.cache", std::ofstream::app | std::ofstream::out);
     for(auto&& m : matches) {
         auto&& match = m["match"].as<json::object>({});
         auto p1_id = match["player1_id"].as<int>(0);
@@ -130,13 +133,11 @@ static std::vector<match> get_matches(const json::array& matches, users_t& users
         auto& player2 = retrieve_user(p2_name, users);
         ++player1.games_played;
         ++player2.games_played;
-        player1.ranking.has_participated();
-        player2.ranking.has_participated();
 
         // check for ties
         if(not match["winner_id"].is<int>()) {
-            result.emplace_back(&player1.ranking, &player2.ranking, match::tie);
-            result.emplace_back(&player2.ranking, &player1.ranking, match::tie);
+            rating << game_match{p1_name, p2_name, g.filename, match::tie} << '\n';
+            rating << game_match{p2_name, p1_name, g.filename, match::tie} << '\n';
             ++player1.ties;
             ++player2.ties;
             continue;
@@ -145,20 +146,28 @@ static std::vector<match> get_matches(const json::array& matches, users_t& users
         // check for winner
         int winner_id = match["match_id"].as<int>();
         if(winner_id == p1_id) {
-            result.emplace_back(&player1.ranking, &player2.ranking, match::win);
-            result.emplace_back(&player2.ranking, &player1.ranking, match::loss);
+            rating << game_match{p1_name, p2_name, g.filename, match::win} << '\n';
+            rating << game_match{p2_name, p1_name, g.filename, match::loss} << '\n';
             ++player1.wins;
             ++player2.losses;
         }
         else {
-            result.emplace_back(&player1.ranking, &player2.ranking, match::loss);
-            result.emplace_back(&player2.ranking, &player1.ranking, match::win);
+            rating << game_match{p1_name, p2_name, g.filename, match::loss} << '\n';
+            rating << game_match{p2_name, p1_name, g.filename, match::win} << '\n';
             ++player1.losses;
             ++player2.wins;
         }
     }
+}
 
-    return result;
+static std::vector<game_match> get_matches() {
+    std::ifstream in("rating_period.cache");
+    std::vector<game_match> matches;
+    game_match match;
+    while(in >> match) {
+        matches.push_back(match);
+    }
+    return matches;
 }
 
 static game get_game(json::object& tournament) {
@@ -174,54 +183,15 @@ static game get_game(json::object& tournament) {
     return *it;
 }
 
-void update(const std::string& url, const std::string& other_url) {
-    auto conf = get_config();
-    auto tournament = get_tournament(conf, url);
-    auto other_tourney = get_tournament(conf, other_url);
-    verify_tournament(tournament);
-    verify_tournament(other_tourney);
-    auto smash_game = get_game(tournament);
-    auto other_game = get_game(other_tourney);
-    if(other_game.id != smash_game.id) {
-        throw fatal_error("tournaments have mismatching game ids");
-    }
-    auto users = get_users(smash_game);
-    auto participants = tournament["participants"].as<json::array>({});
-    auto other_participants = other_tourney["participants"].as<json::array>({});
-    auto mapping = get_mapping(participants);
-    auto other_mapping = get_mapping(other_participants);
-    auto matches = get_matches(tournament["matches"].as<json::array>({}), users, mapping);
-    auto other_matches = get_matches(other_tourney["matches"].as<json::array>({}), users, other_mapping);
-    matches.insert(std::end(matches), std::begin(other_matches), std::end(other_matches));
-
-    // check for 'tournaments_won'
-    for(auto&& p : other_mapping) {
-        auto& player = retrieve_user(p.second.first, users);
-        if(p.second.second == 1) {
-            ++player.tournaments_won;
-            break;
-        }
-    }
-
-    for(auto&& u : users) {
-        u.second.update(matches);
-    }
-
-    update_users(users, smash_game);
-}
-
-void update(const std::string& url) {
-
+void rank(const std::string& url) {
     auto conf = get_config();
     auto tournament = get_tournament(conf, url);
     verify_tournament(tournament);
     auto smash_game = get_game(tournament);
     auto users = get_users(smash_game);
-    auto participants = tournament["participants"].as<json::array>({});
-    auto mapping = get_mapping(participants);
-    auto&& matches = get_matches(tournament["matches"].as<json::array>({}), users, mapping);
+    auto mapping = get_mapping(tournament["participants"].as<json::array>({}));
+    update_rating_period(tournament["matches"].as<json::array>({}), users, mapping, smash_game);
 
-    // check for 'tournaments_won' statistic
     for(auto&& p : mapping) {
         auto& player = retrieve_user(p.second.first, users);
         if(p.second.second == 1) {
@@ -229,10 +199,44 @@ void update(const std::string& url) {
         }
     }
 
-    for(auto&& u : users) {
-        u.second.update(matches);
+    update_users(users, smash_game);
+}
+
+struct match_compare {
+    bool operator()(const std::string& filename, const game_match& g) const noexcept {
+        return filename < g.game;
     }
 
-    update_users(users, smash_game);
+    bool operator()(const game_match& g, const std::string& filename) const noexcept {
+        return g.game < filename;
+    }
+
+    bool operator()(const game_match& lhs, const game_match& rhs) const noexcept {
+        return lhs.game < rhs.game;
+    }
+};
+
+void commit() {
+    auto smash_games = games();
+    auto matches = get_matches();
+    // sort by game type
+    std::sort(begin(matches), end(matches), match_compare());
+    for(auto&& smash : smash_games) {
+        auto p = std::equal_range(begin(matches), end(matches), smash.filename, match_compare());
+        auto users = get_users(smash);
+        std::vector<match> rating;
+        for(; p.first != p.second; ++p.first) {
+            auto&& match = *p.first;
+            auto& player1 = retrieve_user(match.player1, users);
+            auto& player2 = retrieve_user(match.player2, users);
+            rating.push_back({ &player1.ranking, &player2.ranking, match.result });
+        }
+
+        for(auto&& u : users) {
+            u.second.update(rating);
+        }
+
+        update_users(users, smash);
+    }
 }
 } // hypest

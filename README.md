@@ -23,7 +23,6 @@ The JSON protocol for the user list. Using challonge username "rapptz" as an exa
 ```js
 {
     "rapptz": {
-        "is_challonge_user": True,
         "challonge_username": "rapptz",
         "reddit_username": "rapptz",
         "wins": 5,
@@ -33,7 +32,8 @@ The JSON protocol for the user list. Using challonge username "rapptz" as an exa
         "rd": 350,
         "vol": 0.06,
         "bttom_interval": 1690,
-        "top_interval": 1204
+        "top_interval": 1204,
+        "tournaments_won": 0
     }
 }
 ```
@@ -41,6 +41,8 @@ The JSON protocol for the user list. Using challonge username "rapptz" as an exa
 ## Dependencies
 
 - libcurl >= 7.3
+
+A C++14 compiler is required (such as GCC 4.9).
 
 ## License
 
