@@ -2,6 +2,7 @@
 #include <games.hpp>
 #include <user.hpp>
 #include <requests.hpp>
+#include <cstdio>
 #include <error.hpp>
 #include <challonge.hpp>
 #include <regex>
@@ -77,24 +78,36 @@ static mapping_t get_mapping(const json::array& participants) {
         if(participant.empty()) {
             continue;
         }
+        int id = participant["id"].as<int>();
+        int final_rank = participant["final_rank"].as<int>(0);
+        std::string name;
 
+        // if someone does not have a challonge username then
+        // they are assigned a "guest" name of "#"
+        // these guests do not have anything special to them outside of
+        // being an intermediate format to make it valid.
         auto&& username = participant["challonge_username"];
         if(not username.is<std::string>()) {
-            continue; // no challonge username? no ranking.
+            name = "#";
+        }
+        else {
+            name = username.as<std::string>();
+            if(name.empty()) {
+                name = "#";
+            }
         }
 
-        // empty challonge username?
-        if(username.as<std::string>().empty()) {
-            // no entry.
-            continue;
-        }
-
-        mapping.emplace(participant["id"].as<int>(), std::make_pair(username.as<std::string>(), participant["final_rank"].as<int>(0)));
+        mapping.emplace(id, std::make_pair(name, final_rank));
     }
     return mapping;
 }
 
+static user guest;
+
 static user& retrieve_user(const std::string& username, users_t& users) {
+    if(username == "#") {
+        return guest;
+    }
     auto it = users.find(username);
     if(it == users.end()) {
         user entry;
@@ -238,5 +251,7 @@ void commit() {
 
         update_users(users, smash);
     }
+
+    std::remove("rating_period.cache");
 }
 } // hypest
