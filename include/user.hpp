@@ -29,7 +29,7 @@
 namespace hypest {
 struct user {
     glicko ranking;
-    std::string name;
+    std::string name = "#";
     std::string reddit;
     int wins = 0;
     int losses = 0;
