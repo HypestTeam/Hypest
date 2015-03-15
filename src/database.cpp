@@ -1,5 +1,6 @@
 #include <database.hpp>
 #include <error.hpp>
+#include <config.hpp>
 #include <cache.hpp>
 #include <challonge.hpp>
 #include <algorithm>
@@ -16,7 +17,8 @@ opt::subcommand database() {
         { "force", 'f', "force updating despite being the url(s) being processed already" },
         { "commit", 'c', "finalises a rating period and updates player's rankings" },
         { "rebuild", "rebuilds the database with the db.cache file" },
-        { "verbose", "verbose output" }
+        { "verbose", "verbose output" },
+        { "dump", "dumps the tournament response JSON to stdout and exits", opt::value<std::string>("url") }
     };
 
     opt::subcommand result = { "database", "handles the hypest database", args };
@@ -61,6 +63,13 @@ void database(const opt::arguments& args) {
     rank_cache cache = get_cache();
     bool forced = opts.is_active("force");
     bool verbose = opts.is_active("verbose");
+
+    if(opts.is_active("dump")) {
+        auto tournament = get_tournament(get_config(), opts.get<std::string>("dump"));
+        json::dump(std::cout, tournament);
+        return;
+    }
+
     if(opts.is_active("rank")) {
         auto&& url = opts.get<std::string>("rank");
         if(not forced) {
