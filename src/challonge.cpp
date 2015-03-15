@@ -18,7 +18,7 @@ std::string api_domain(const std::string& str) {
     if(std::regex_match(str, m, r)) {
         auto&& subdomain = m[1].str();
         auto&& url = m[2].str();
-        if(subdomain == "www") {
+        if(subdomain == "www" || subdomain.empty()) {
             return url;
         }
         subdomain.push_back('-');
