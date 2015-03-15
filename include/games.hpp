@@ -37,6 +37,7 @@ inline std::vector<game> games() noexcept {
         { "Super Smash Bros. for 3DS",   "ssb3ds.json",   16869 },
         { "Super Smash Bros. for Wii U", "ssbwiiu.json",  20988 },
         { "Super Smash Bros. Melee",     "ssbm.json",     394   },
+        { "Super Smash Bros. Brawl",     "ssbb.json",     393   },
         { "Super Smash Bros.",           "ssb64.json",    392   },
         { "Project M",                   "projectm.json", 597   },
         { "Super Smash Flash 2",         "ssf2.json",     1106  }
