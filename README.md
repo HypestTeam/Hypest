@@ -41,6 +41,7 @@ The JSON protocol for the user list. Using challonge username "rapptz" as an exa
 ## Dependencies
 
 - libcurl >= 7.3
+- Boost.Filesystem (which depends on Boost.System)
 
 A C++14 compiler is required (such as GCC 4.9).
 

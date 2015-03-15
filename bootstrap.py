@@ -14,7 +14,7 @@ args = parser.parse_args()
 project = senpai.Project(name='Hypest', compiler=senpai.compiler(args.cxx), builddir='bin', objdir='obj')
 project.includes = ['.', 'include']
 project.dependencies = ['deps']
-project.libraries = ['curl']
+project.libraries = ['curl', 'boost_system', 'boost_filesystem']
 S = senpai.Executable(name='hypest', target='build', run='run')
 S.files = senpai.files_from('src', '*.cpp')
 

@@ -118,7 +118,7 @@ std::istream& operator>>(std::istream& in, game_match& r) {
 }
 
 std::ostream& operator<<(std::ostream& out, const game_match& r) {
-    return out << std::quoted(r.player1) << std::quoted(r.player2) << r.result << std::quoted(r.game);
+    return out << std::quoted(r.player1) << ' ' << std::quoted(r.player2) << ' ' << r.result << ' '<< std::quoted(r.game);
 }
 
 static void update_rating_period(const json::array& matches, users_t& users, const mapping_t& mapping, const game& g) {

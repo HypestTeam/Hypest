@@ -1,6 +1,9 @@
 #include <config.hpp>
 #include <error.hpp>
 #include <fstream>
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 namespace hypest {
 static json::object load_obj(const char* filename) {
@@ -39,7 +42,9 @@ void update_config(const json::object& obj) {
 }
 
 users_t get_users(const game& g) {
-    auto&& obj = load_obj(g.filename.c_str());
+    fs::create_directory("database");
+    auto&& path = "database/" + g.filename;
+    auto&& obj = load_obj(path.c_str());
     if(obj.empty()) {
         return {};
     }
@@ -51,7 +56,11 @@ users_t get_users(const game& g) {
 }
 
 void update_users(const users_t& u, const game& g) {
-    std::ofstream out(g.filename);
+    auto&& path = "database/" + g.filename;
+    std::ofstream out(path.c_str());
+    if(not out.is_open()) {
+        throw fatal_error("unable to load " + g.filename);
+    }
     json::format_options opt;
     opt.precision = 15; // 15 digits for double
     json::dump(out, u, opt);
