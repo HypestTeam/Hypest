@@ -27,33 +27,6 @@
 #include <cmath>
 
 namespace hypest {
-class glicko;
-
-struct match {
-    enum : int {
-        win, loss, tie
-    };
-
-    glicko* p1;
-    glicko* p2;
-    int result;
-
-    match(glicko* p1, glicko* p2, int result) noexcept: p1(p1), p2(p2), result(result) {}
-
-    double score() const noexcept {
-        switch(result) {
-        case match::win:
-            return 1.0;
-        case match::loss:
-            return 0.0;
-        case match::tie:
-            return 0.5;
-        default:
-            return 0.0;
-        }
-    }
-};
-
 constexpr double pow2(double x) noexcept {
     return x * x;
 }
@@ -104,7 +77,8 @@ public:
         return participating;
     }
 
-    void update(const std::vector<match>& matches) {
+    template<typename Matches>
+    void update(const Matches& matches) {
         if(not participating) {
             scaled_rd = std::sqrt(pow2(scaled_rd) + pow2(vol));
             return;
@@ -132,8 +106,9 @@ private:
         return 1 / std::sqrt(1 + (3 * pow2(op_rd))/pow2(pi));
     }
 
-    bool has_played(const std::vector<match>& matches) const noexcept {
-        return std::find_if(matches.begin(), matches.end(), [this](const match& m) {
+    template<typename Matches>
+    bool has_played(const Matches& matches) const noexcept {
+        return std::find_if(matches.begin(), matches.end(), [this](const auto& m) {
             return m.p1 == this;
         }) != matches.end();
     }
@@ -145,7 +120,8 @@ private:
     }
 
     // step 3 to calculate quantity v
-    double calculate_v(const std::vector<match>& matches) const noexcept {
+    template<typename Matches>
+    double calculate_v(const Matches& matches) const noexcept {
         double sum = 0.0;
         for(auto&& match : matches) {
             if(match.p1 != this) {
@@ -160,7 +136,8 @@ private:
     }
 
     // part of step 4 and step 7 is to get the sum of scores
-    double score_sum(const std::vector<match>& matches) const noexcept {
+    template<typename Matches>
+    double score_sum(const Matches& matches) const noexcept {
         double sum = 0.0;
         for(auto&& match : matches) {
             if(match.p1 != this) {
@@ -220,6 +197,34 @@ private:
         }
 
         return std::exp(A / 2);
+    }
+};
+
+struct match {
+    enum : int {
+        win, loss, tie
+    };
+
+    glicko* p1;
+    glicko* p2;
+    int result;
+
+    match(glicko* p1, glicko* p2, int result) noexcept: p1(p1), p2(p2), result(result) {
+        p1->has_participated();
+        p2->has_participated();
+    }
+
+    double score() const noexcept {
+        switch(result) {
+        case match::win:
+            return 1.0;
+        case match::loss:
+            return 0.0;
+        case match::tie:
+            return 0.5;
+        default:
+            return 0.0;
+        }
     }
 };
 } // hypest

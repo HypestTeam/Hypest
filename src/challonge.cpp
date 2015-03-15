@@ -157,7 +157,7 @@ static void update_rating_period(const json::array& matches, users_t& users, con
         }
 
         // check for winner
-        int winner_id = match["match_id"].as<int>();
+        int winner_id = match["winner_id"].as<int>();
         if(winner_id == p1_id) {
             rating << game_match{p1_name, p2_name, g.filename, match::win} << '\n';
             rating << game_match{p2_name, p1_name, g.filename, match::loss} << '\n';
@@ -210,6 +210,7 @@ void rank(const std::string& url) {
         if(p.second.second == 1) {
             ++player.tournaments_won;
         }
+        ++player.times_participated;
     }
 
     update_users(users, smash_game);
@@ -246,7 +247,7 @@ void commit() {
         }
 
         for(auto&& u : users) {
-            u.second.update(rating);
+            u.second.ranking.update(rating);
         }
 
         update_users(users, smash);
