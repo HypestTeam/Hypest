@@ -32,7 +32,7 @@ if sys.platform == 'win32':
     project.libraries.append('curldll')
 
 if args.debug:
-    cxxflags.extend(['-g', '-O0', '-DDEBUG'])
+    cxxflags.extend(['-ggdb3' if args.cxx == 'g++' else '-g', '-O0', '-DDEBUG'])
 else:
     cxxflags.extend(['-DNDEBUG', '-O3'])
 

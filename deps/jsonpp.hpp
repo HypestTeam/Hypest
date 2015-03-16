@@ -20,8 +20,8 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 // This file was generated with a script.
-// Generated 2015-03-10 03:04:22.494000 UTC
-// This header was generated with jsonpp v0.9.0 (revision 368afad)
+// Generated 2015-03-16 20:38:58.094000 UTC
+// This header was generated with jsonpp v0.9.0 (revision 356a83f)
 // https://github.com/Rapptz/jsonpp
 
 #ifndef JSONPP_SINGLE_INCLUDE_HPP
@@ -647,13 +647,13 @@ public:
         return *this;
     }
 
-    value& operator=(const value& other) noexcept {
+    value& operator=(const value& other) {
         clear();
         copy(other);
         return *this;
     }
 
-    value& operator=(value&& other) {
+    value& operator=(value&& other) noexcept {
         clear();
         switch(other.storage_type) {
         case type::array:
@@ -750,54 +750,54 @@ public:
     }
 
     template<typename T, EnableIf<std::is_same<T, const char*>> = 0>
-    T as() const noexcept {
+    T as() const {
         assert(is<T>());
         return storage.str->c_str();
     }
 
     template<typename T, EnableIf<std::is_same<T, std::string>> = 0>
-    T as() const noexcept {
+    T as() const {
         assert(is<T>());
         return *(storage.str);
     }
 
     template<typename T, EnableIf<is_null<T>> = 0>
-    T as() const noexcept {
+    T as() const {
         assert(is<T>());
         return {};
     }
 
     template<typename T, EnableIf<is_bool<T>> = 0>
-    T as() const noexcept {
+    T as() const {
         assert(is<T>());
         return storage.boolean;
     }
 
     template<typename T, EnableIf<is_number<T>> = 0>
-    T as() const noexcept {
+    T as() const {
         assert(is<T>());
         return storage.number;
     }
 
     template<typename T, EnableIf<std::is_same<T, object>> = 0>
-    T as() const noexcept {
+    T as() const {
         assert(is<T>());
         return *(storage.obj);
     }
 
     template<typename T, EnableIf<std::is_same<T, array>> = 0>
-    T as() const noexcept {
+    T as() const {
         assert(is<T>());
         return *(storage.arr);
     }
 
     template<typename T>
-    T as(Identity<T>&& def) const noexcept {
+    T as(Identity<T>&& def) const {
         return is<T>() ? as<T>() : std::forward<T>(def);
     }
 
     template<typename T, EnableIf<is_string<T>> = 0>
-    value operator[](const T& str) const noexcept {
+    value operator[](const T& str) const {
         if(!is<object>()) {
             return {};
         }
@@ -810,7 +810,7 @@ public:
     }
 
     template<typename T, EnableIf<is_number<T>> = 0>
-    value operator[](const T& index) const noexcept {
+    value operator[](const T& index) const {
         if(!is<array>()) {
             return {};
         }

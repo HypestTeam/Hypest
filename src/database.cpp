@@ -66,7 +66,9 @@ void database(const opt::arguments& args) {
 
     if(opts.is_active("dump")) {
         auto tournament = get_tournament(get_config(), opts.get<std::string>("dump"));
-        json::dump(std::cout, tournament);
+        json::format_options opt;
+        opt.precision = 15;
+        json::dump(std::cout, tournament, opt);
         return;
     }
 

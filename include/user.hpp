@@ -22,7 +22,7 @@
 #ifndef HYPEST_USER_HPP
 #define HYPEST_USER_HPP
 
-#include <glicko2.hpp>
+#include <glicko.hpp>
 #include <string>
 #include <jsonpp.hpp>
 
@@ -38,12 +38,23 @@ struct user {
     int games_played = 0;
     int times_participated = 0;
 
-    void update(const std::vector<match>& matches) {
-        if(ranking.is_participating()) {
-            ++times_participated;
+    int top_interval() const noexcept {
+        return static_cast<int>(ranking.rating() + 2 * ranking.rd());
+    }
+
+    int bottom_interval() const noexcept {
+        return static_cast<int>(ranking.rating() - 2 * ranking.rd());
+    }
+
+    int average_interval() const noexcept {
+        return (top_interval() + bottom_interval()) / 2;
+    }
+
+    double win_loss_ratio() const noexcept {
+        if(losses == 0) {
+            return wins;
         }
-        // the win/loss/tie/games_played statistic is updated while retrieving these matches
-        ranking.update(matches);
+        return static_cast<double>(wins) / losses;
     }
 };
 
@@ -59,10 +70,10 @@ inline json::value to_json(const user& u) {
         { "reddit_username", u.reddit },
         { "rating", u.ranking.rating<int>() },
         { "rd", u.ranking.rd() },
-        { "volatility", u.ranking.volatility() },
+        { "rating_periods_passed", u.ranking.rating_periods_passed() },
         // 95% confidence interval
-        { "bottom_interval", static_cast<int>(u.ranking.rating() - 2 * u.ranking.rd()) },
-        { "top_interval", static_cast<int>(u.ranking.rating() + 2 * u.ranking.rd()) }
+        { "bottom_interval", u.bottom_interval() },
+        { "top_interval", u.top_interval() }
     };
 }
 
@@ -74,7 +85,7 @@ inline user user_from_json(const json::value& v) {
     user result;
     result.ranking.rd(obj["rd"].as<double>(350));
     result.ranking.rating(obj["rating"].as<int>(1500));
-    result.ranking.volatility(obj["volatility"].as<double>(0.06));
+    result.ranking.rating_periods_passed(obj["rating_periods_passed"].as<int>(1));
     result.wins = obj["wins"].as<int>(0);
     result.losses = obj["losses"].as<int>(0);
     result.ties = obj["ties"].as<int>(0);

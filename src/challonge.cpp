@@ -238,16 +238,32 @@ void commit() {
     for(auto&& smash : smash_games) {
         auto p = std::equal_range(begin(matches), end(matches), smash.filename, match_compare());
         auto users = get_users(smash);
-        std::vector<match> rating;
+
+        // group by player name
+        std::map<std::string, std::vector<match>> grouped_matches;
         for(; p.first != p.second; ++p.first) {
-            auto&& match = *p.first;
-            auto& player1 = retrieve_user(match.player1, users);
-            auto& player2 = retrieve_user(match.player2, users);
-            rating.push_back({ &player1.ranking, &player2.ranking, match.result });
+            auto&& m = *p.first;
+            auto& p2 = retrieve_user(m.player2, users);
+            grouped_matches[m.player1].emplace_back(p2.ranking, m.result);
         }
 
+        // for(auto&& group : grouped_matches) {
+        //     auto& player = retrieve_user(group.first, users);
+        //     if(not group.second.empty()) {
+        //         player.ranking.has_participated();
+        //     }
+        //     player.ranking.update(group.second);
+        // }
         for(auto&& u : users) {
-            u.second.ranking.update(rating);
+            auto& player = u.second;
+            auto it = grouped_matches.find(player.name);
+            if(it == grouped_matches.end()) {
+                // did not participate so..
+                player.ranking.update(std::vector<match>{});
+                continue;
+            }
+            player.ranking.has_participated();
+            player.ranking.update(it->second);
         }
 
         update_users(users, smash);

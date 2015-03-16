@@ -6,6 +6,12 @@
             "path": "."
         }
     ],
+    "settings":
+    {
+         "sublimegdb_workingdir": "${folder:${project_path:bootstrap.py}}",
+         // NOTE: You MUST provide --interpreter=mi for the plugin to work
+         "sublimegdb_commandline": "gdb --interpreter=mi ./bin/hypest database --rebuild"
+    },
     "build_systems":
     [
         {
