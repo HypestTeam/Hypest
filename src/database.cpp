@@ -50,7 +50,7 @@ void rebuild_database(const rank_cache& cache, bool verbose) {
         }
         rank(entry.url);
     }
-    if(cache.current_rating_period < rating_period) {
+    if(cache.current_rating_period > rating_period) {
         if(verbose) {
             std::cout << "Rating period (" << rating_period << ") has completed\n";
         }

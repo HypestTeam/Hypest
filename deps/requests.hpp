@@ -290,6 +290,10 @@ public:
         }
     }
 
+    bool empty() const noexcept {
+        return list == nullptr;
+    }
+
     curl_slist* data() const noexcept {
         return list;
     }
@@ -361,13 +365,13 @@ struct response {
         }
 
         // 'trim' the end
-        while(header.back() == '\n' || header.back() == '\t' || header.back() == ' ' || header.back() == '\r') {
+        while(not header.empty() && (header.back() == '\n' || header.back() == '\t' || header.back() == ' ' || header.back() == '\r')) {
             header.pop_back();
         }
 
         // separate the header to key/value pairs
         auto pos = header.find(':');
-        if(pos != std::string::npos) {
+        if((pos != std::string::npos) && (pos + 1 != std::string::npos) && (pos + 2 != std::string::npos)) {
             ptr->headers.emplace(header.substr(0, pos), header.substr(pos + 2));
         }
         return size * count;
@@ -475,7 +479,9 @@ public:
 
     template<typename String>
     response send(const String& method) {
-        setopt(CURLOPT_HTTPHEADER, slist.data());
+        if(not slist.empty()) {
+            setopt(CURLOPT_HTTPHEADER, slist.data());
+        }
 
         using comp = std::char_traits<char>;
         using trait_type = detail::string_traits<String>;
@@ -510,6 +516,10 @@ public:
     template<typename String>
     std::future<response> async_send(const String& method) {
         return std::async(std::launch::async, &request::send<String>, this, std::cref(method));
+    }
+
+    std::string full_url() const {
+        return url;
     }
 private:
     template<typename Option, typename Parameter>

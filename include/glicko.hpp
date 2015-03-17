@@ -50,11 +50,11 @@ class glicko {
 public:
 
     // this is the decay constant that dictates how many rating
-    // periods it will take to go from min_rd to max_rd.
-    // At the moment this constant is derived from 18 rating periods.
-    // The formula to do this is max_rd = sqrt(min_rd^2 + decay^2 * t)
-    // where t is the number of rating periods missed (in this case 18)
-    static constexpr double decay = 82.0822757969100;
+    // periods it will take to go from min_rd + 15 to max_rd.
+    // At the moment this constant is derived from 30 rating periods.
+    // The formula to do this is max_rd = sqrt((min_rd+15)^2 + decay^2 * t)
+    // where t is the number of rating periods missed
+    static constexpr double decay = 63.2455532033676;
 
     glicko() noexcept = default;
     glicko(double r, double rdev = max_rd): r(r), rdev(rdev) {}

@@ -235,6 +235,7 @@ void commit() {
     auto matches = get_matches();
     // sort by game type
     std::sort(begin(matches), end(matches), match_compare());
+
     for(auto&& smash : smash_games) {
         auto p = std::equal_range(begin(matches), end(matches), smash.filename, match_compare());
         auto users = get_users(smash);
@@ -247,13 +248,6 @@ void commit() {
             grouped_matches[m.player1].emplace_back(p2.ranking, m.result);
         }
 
-        // for(auto&& group : grouped_matches) {
-        //     auto& player = retrieve_user(group.first, users);
-        //     if(not group.second.empty()) {
-        //         player.ranking.has_participated();
-        //     }
-        //     player.ranking.update(group.second);
-        // }
         for(auto&& u : users) {
             auto& player = u.second;
             auto it = grouped_matches.find(player.name);

@@ -40,6 +40,10 @@
                     "shell_cmd": "g++ -Wall -Wextra -pedantic -std=c++11 -fsyntax-only -I\"${project_path}\" ${file}"
                 },
                 {
+                    "name": "Clean",
+                    "shell_cmd": "ninja -t clean"
+                },
+                {
                     "name": "Rebuild ninja file",
                     "working_dir": "${project_path}",
                     "shell_cmd": "./bootstrap.py",
