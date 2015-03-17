@@ -238,6 +238,9 @@ void commit() {
 
     for(auto&& smash : smash_games) {
         auto p = std::equal_range(begin(matches), end(matches), smash.filename, match_compare());
+        if(p.first == p.second) {
+            continue;
+        }
         auto users = get_users(smash);
 
         // group by player name

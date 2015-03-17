@@ -71,16 +71,26 @@ public:
 
     void has_participated() noexcept {
         participating = true;
+        t = 1;
     }
 
     bool is_participating() const noexcept {
         return participating;
     }
 
+    int tournament_miss_streak() const noexcept {
+        return t;
+    }
+
+    void tournament_miss_streak(int streak) noexcept {
+        t = streak;
+    }
+
     template<typename Matches>
     void update(const Matches& matches) {
         if(not participating) {
             scaled_rd = std::sqrt(pow2(scaled_rd) + pow2(vol));
+            ++t;
             return;
         }
         double v = calculate_v(matches);
@@ -99,6 +109,7 @@ private:
     double scaled_rating = 0.0;
     double scaled_rd = 350 / scale;
     double vol = 0.06;
+    int t = 1;
     bool participating = false;
 
     // the g(o) function in Glicko-2
@@ -123,13 +134,9 @@ private:
     template<typename Matches>
     double calculate_v(const Matches& matches) const noexcept {
         double sum = 0.0;
-        for(auto&& match : matches) {
-            if(match.p1 != this) {
-                continue;
-            }
-            auto* opponent = match.p2;
-            double g_o = g(opponent->scaled_rd);
-            double e = E(opponent->scaled_rating, g_o);
+        for(auto&& m : matches) {
+            double g_o = g(m.opponent.scaled_rd);
+            double e = E(m.opponent.scaled_rating, g_o);
             sum += pow2(g_o) * e * (1 - e);
         }
         return 1 / sum;
@@ -139,14 +146,10 @@ private:
     template<typename Matches>
     double score_sum(const Matches& matches) const noexcept {
         double sum = 0.0;
-        for(auto&& match : matches) {
-            if(match.p1 != this) {
-                continue;
-            }
-            auto* opponent = match.p2;
-            double g_o = g(opponent->scaled_rd);
-            double e = E(opponent->scaled_rating, g_o);
-            sum += g_o * (match.score() - e);
+        for(auto&& m : matches) {
+            double g_o = g(m.opponent.scaled_rd);
+            double e = E(m.opponent.scaled_rating, g_o);
+            sum += g_o * (m.score() - e);
         }
         return sum;
     }
@@ -205,14 +208,10 @@ struct match {
         win, loss, tie
     };
 
-    glicko* p1;
-    glicko* p2;
+    glicko opponent;
     int result;
 
-    match(glicko* p1, glicko* p2, int result) noexcept: p1(p1), p2(p2), result(result) {
-        p1->has_participated();
-        p2->has_participated();
-    }
+    match(glicko opponent, int result) noexcept: opponent(opponent), result(result) {}
 
     double score() const noexcept {
         switch(result) {

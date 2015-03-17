@@ -22,7 +22,7 @@
 #ifndef HYPEST_USER_HPP
 #define HYPEST_USER_HPP
 
-#include <glicko.hpp>
+#include <glicko2.hpp>
 #include <string>
 #include <jsonpp.hpp>
 
@@ -46,10 +46,6 @@ struct user {
         return static_cast<int>(ranking.rating() - 2 * ranking.rd());
     }
 
-    int average_interval() const noexcept {
-        return (top_interval() + bottom_interval()) / 2;
-    }
-
     double win_loss_ratio() const noexcept {
         if(losses == 0) {
             return wins;
@@ -70,7 +66,10 @@ inline json::value to_json(const user& u) {
         { "reddit_username", u.reddit },
         { "rating", u.ranking.rating<int>() },
         { "rd", u.ranking.rd() },
-        { "rating_periods_passed", u.ranking.rating_periods_passed() },
+        { "tournament_miss_streak", u.ranking.tournament_miss_streak() },
+#if defined(HYPEST_GLICKO2_HPP)
+        { "volatility", u.ranking.volatility() },
+#endif // glicko2 only
         // 95% confidence interval
         { "bottom_interval", u.bottom_interval() },
         { "top_interval", u.top_interval() }
@@ -85,7 +84,10 @@ inline user user_from_json(const json::value& v) {
     user result;
     result.ranking.rd(obj["rd"].as<double>(350));
     result.ranking.rating(obj["rating"].as<int>(1500));
-    result.ranking.rating_periods_passed(obj["rating_periods_passed"].as<int>(1));
+    result.ranking.tournament_miss_streak(obj["tournament_miss_streak"].as<int>(1));
+#if defined(HYPEST_GLICKO2_HPP)
+    result.ranking.volatility(obj["volatility"].as<double>(0.06));
+#endif // glicko2 only
     result.wins = obj["wins"].as<int>(0);
     result.losses = obj["losses"].as<int>(0);
     result.ties = obj["ties"].as<int>(0);
