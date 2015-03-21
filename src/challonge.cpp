@@ -256,11 +256,10 @@ void commit() {
             auto it = grouped_matches.find(player.name);
             if(it == grouped_matches.end()) {
                 // did not participate so..
-                player.ranking.update(std::vector<match>{});
+                player.update(std::vector<match>{});
                 continue;
             }
-            player.ranking.has_participated();
-            player.ranking.update(it->second);
+            player.update(it->second);
         }
 
         update_users(users, smash);
