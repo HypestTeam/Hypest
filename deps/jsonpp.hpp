@@ -205,6 +205,9 @@ namespace detail {
 #if defined(_WIN32)
 inline std::u16string utf8_to_utf16(const std::string& utf8) {
     static_assert(sizeof(wchar_t) == sizeof(char16_t), "wchar_t must be 16 bits");
+    if(utf8.empty()) {
+        return {};
+    }
     std::wstring temp;
     auto required_size = ::MultiByteToWideChar(CP_UTF8, 0, &utf8[0], static_cast<int>(utf8.size()), nullptr, 0);
     temp.resize(required_size);

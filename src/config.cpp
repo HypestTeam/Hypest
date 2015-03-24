@@ -63,6 +63,7 @@ void update_users(const users_t& u, const game& g) {
     }
     json::format_options opt;
     opt.precision = 15; // 15 digits for double
+    opt.flags = json::format_options::escape_multi_byte;
     json::dump(out, u, opt);
 }
 } // hypest
