@@ -40,7 +40,8 @@ opt::subcommand database() {
         { "verbose", "verbose output" },
         { "dump", "dumps the tournament response JSON to stdout and exits", opt::value<std::string>("url") },
         { "reddit-mapping", "updates the reddit username mapping with a .json file", opt::value<std::string>("file") },
-        { "reddit", "updates the reddit username of a challonge username (e.g. \"challonge,reddit\")", opt::custom<username_mapping>(mapping_action{}) }
+        { "reddit", "updates the reddit username of a challonge username (e.g. \"challonge,reddit\")", opt::custom<username_mapping>(mapping_action{}) },
+        { "latest", "prints information about thhe latest entry to the cache" }
     };
 
     opt::subcommand result = { "database", "handles the hypest database", args };
@@ -58,7 +59,7 @@ void rebuild_database(const rank_cache& cache, bool verbose) {
     // clear the databases
     fs::remove_all("database");
 
-    int rating_period = 1;
+    unsigned rating_period = 1;
     for(auto&& entry : cache) {
         if(entry.rating_period != rating_period) {
             if(verbose) {
@@ -78,6 +79,30 @@ void rebuild_database(const rank_cache& cache, bool verbose) {
         }
         commit();
     }
+}
+
+void latest_info(const rank_cache& cache) {
+    auto size = cache.size();
+    auto needle = std::find_if(cache.begin(), cache.end(), [&size](const auto& entry) {
+        return entry.id == size;
+    });
+
+    if(needle == cache.end()) {
+        std::cout << "No last tournament found!\n";
+        return;
+    }
+
+    auto&& entry = *needle;
+    auto tournament = get_tournament(get_config(), entry.url);
+
+    std::cout << "Full URL     : " << entry.url << '\n'
+              << "Entry ID     : " << entry.id << '\n'
+              << "Rating Period: " << entry.rating_period << '\n'
+              << "Entry Date   : " << tournament["completed_at"].as<std::string>("unknown") << '\n'
+              << "Game Name    : " << tournament["game_name"].as<std::string>("unknown") << '\n'
+              << "Participants : " << tournament["participants_count"].as<int>(0) << '\n'
+              << "Type         : " << tournament["tournament_type"].as<std::string>("unknown") << '\n'
+              << "Teams allowed? " << (tournament["teams"].as<bool>(false) ? "Yes\n" : "No\n");
 }
 
 void reddit_mapping(const std::string& filename) {
@@ -146,6 +171,10 @@ void database(const opt::arguments& args) {
             std::cout << "Processing " << url << '\n';
         }
         rank(url);
+    }
+
+    if(opts.is_active("latest")) {
+        latest_info(cache);
     }
 
     if(opts.is_active("reddit")) {

@@ -27,15 +27,15 @@
 
 namespace hypest {
 struct cache_entry {
-    std::string url;     // the challonge URL it points to
-    int rating_period;   // denotes the rating period it belongs to (starts at 1)
-    int id;              // denotes the entry ID (starts at 1)
+    std::string url;          // the challonge URL it points to
+    unsigned rating_period;   // denotes the rating period it belongs to (starts at 1)
+    unsigned id;              // denotes the entry ID (starts at 1)
 };
 
 // this type shall be sorted when loaded, making it safe for binary_search
 struct rank_cache {
     std::vector<cache_entry> entries;
-    int current_rating_period = 1;
+    unsigned current_rating_period = 1;
 
     auto begin() {
         return entries.begin();
