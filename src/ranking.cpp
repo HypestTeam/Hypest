@@ -46,7 +46,7 @@ void show_ranks(const game& smash) {
     });
 
     std::sort(players.begin(), players.end(), [](const user& lhs, const user& rhs) {
-        return lhs.ranking.rating() > rhs.ranking.rating();
+        return rhs.ranking.rating() < lhs.ranking.rating();
     });
 
     // remove players who haven't participated in more than 8 weeks.

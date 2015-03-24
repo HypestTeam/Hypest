@@ -2,15 +2,35 @@
 #include <error.hpp>
 #include <config.hpp>
 #include <cache.hpp>
+#include <games.hpp>
 #include <challonge.hpp>
 #include <algorithm>
 #include <iostream>
+#include <cctype>
 #include <boost/filesystem.hpp>
 
 namespace opt = gears::optparse;
 namespace fs  = boost::filesystem;
 
 namespace hypest {
+struct username_mapping {
+    std::string challonge;
+    std::string reddit;
+};
+
+struct mapping_action {
+    username_mapping operator()(const std::string&, const std::string& value) const {
+        username_mapping result;
+        auto&& pos = value.find(',');
+        if(pos == value.npos) {
+            throw std::runtime_error("invalid format given, must be challonge,reddit");
+        }
+        result.challonge = value.substr(0, pos);
+        result.reddit = value.substr(pos + 1);
+        return result;
+    }
+};
+
 opt::subcommand database() {
     opt::option_set args = {
         { "rank", 'r', "updates the rating period with the given bracket", opt::value<std::string>("url") },
@@ -18,7 +38,9 @@ opt::subcommand database() {
         { "commit", 'c', "finalises a rating period and updates player's rankings" },
         { "rebuild", "rebuilds the database with the db.cache file" },
         { "verbose", "verbose output" },
-        { "dump", "dumps the tournament response JSON to stdout and exits", opt::value<std::string>("url") }
+        { "dump", "dumps the tournament response JSON to stdout and exits", opt::value<std::string>("url") },
+        { "reddit-mapping", "updates the reddit username mapping with a .json file", opt::value<std::string>("file") },
+        { "reddit", "updates the reddit username of a challonge username (e.g. \"challonge,reddit\")", opt::custom<username_mapping>(mapping_action{}) }
     };
 
     opt::subcommand result = { "database", "handles the hypest database", args };
@@ -58,6 +80,43 @@ void rebuild_database(const rank_cache& cache, bool verbose) {
     }
 }
 
+void reddit_mapping(const std::string& filename) {
+    // parse the JSON file
+    json::value v;
+    std::ifstream in(filename);
+    json::parse(in, v);
+    if(not v.is<json::object>()) {
+        throw fatal_error("reddit mapping JSON must be an object of key value pairs of challonge:reddit");
+    }
+
+    auto&& obj = v.as<json::object>();
+    auto smash_games = games();
+    for(auto&& smash : smash_games) {
+        auto users = get_users(smash);
+        for(auto&& u : users) {
+            auto username = u.first;
+            std::transform(username.begin(), username.end(), username.begin(), [](char c) { return std::tolower(c); });
+            auto it = obj.find(username);
+            if(it != obj.end() && it->second.is<std::string>()) {
+                u.second.reddit = it->second.as<std::string>();
+            }
+        }
+        update_users(users, smash);
+    }
+}
+
+void update_reddit(const username_mapping& mapping) {
+    auto smash_games = games();
+    for(auto&& smash : smash_games) {
+        auto users = get_users(smash);
+        auto it = users.find(mapping.challonge);
+        if(it != users.end()) {
+            it->second.reddit = mapping.reddit;
+        }
+        update_users(users, smash);
+    }
+}
+
 void database(const opt::arguments& args) {
     auto&& opts = args.options;
     rank_cache cache = get_cache();
@@ -87,6 +146,14 @@ void database(const opt::arguments& args) {
             std::cout << "Processing " << url << '\n';
         }
         rank(url);
+    }
+
+    if(opts.is_active("reddit")) {
+        update_reddit(opts.get<username_mapping>("reddit"));
+    }
+
+    if(opts.is_active("reddit-mapping")) {
+        reddit_mapping(opts.get<std::string>("reddit-mapping"));
     }
 
     if(opts.is_active("rebuild")) {
