@@ -120,7 +120,6 @@ void reddit_mapping(const std::string& filename) {
         auto users = get_users(smash);
         for(auto&& u : users) {
             auto username = u.first;
-            std::transform(username.begin(), username.end(), username.begin(), [](char c) { return std::tolower(c); });
             auto it = obj.find(username);
             if(it != obj.end() && it->second.is<std::string>()) {
                 u.second.reddit = it->second.as<std::string>();
