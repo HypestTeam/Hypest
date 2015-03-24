@@ -79,7 +79,7 @@ private:
     }
 
     double participation_bonus() const noexcept {
-        return t == 1 ? decay : - t * decay;
+        return t == 1 ? 0.0 : - (t - 1) * decay;
     }
 
     double expected_win_rate(double opponent_rating) const noexcept {
